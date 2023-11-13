@@ -2,11 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Unit Test in File",
+            "name": "Debug",
             "type": "go",
-            "mode": "test",
-            "program": "${fileDirname}",
-            "buildFlags": "-tags 'unittest'",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/appgw-ingress",
+            "env": {
+                "APPGW_VERBOSITY_LEVEL": "9",
+                "AZURE_AUTH_LOCATION": "C:/Users/Z6MDB/.azure/azureAuth.json",
+                "APPGW_RESOURCE_ID": "/subscriptions/c7060798-9a7f-44af-a9fa-85a0d40edb1c/resourceGroups/BCI-AKS-Dev-RG/providers/Microsoft.Network/applicationGateways/BCI-AKS-Dev-AGW",
+                "APPGW_ENABLE_SHARED_APPGW": "true"
+            },
+            "args": [
+                "--kubeconfig=C:/Users/Z6MDB/.kube/config",
+                "--in-cluster=false"
+            ]
         }
     ]
 }

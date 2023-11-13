@@ -7,6 +7,8 @@ package brownfield
 
 import (
 	"encoding/json"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"k8s.io/klog/v2"
@@ -24,6 +26,7 @@ type TargetPath string
 type Target struct {
 	Hostname string     `json:"Hostname,omitempty"`
 	Path     TargetPath `json:"Path,omitempty"`
+	useRegex bool       `json:"-"`
 }
 
 // IsBlacklisted figures out whether a given Target objects in a list of blacklisted targets.
@@ -34,7 +37,16 @@ func (t Target) IsBlacklisted(blacklist TargetBlacklist) bool {
 		// An empty blacklist hostname indicates that any hostname would be blacklisted.
 		// If host names match - this target is in the blacklist.
 		// AGIC is allowed to create and modify App Gwy config for blank host.
-		hostIsBlacklisted := blTarget.Hostname == "" || strings.EqualFold(t.Hostname, blTarget.Hostname)
+		hostIsBlacklisted := blTarget.Hostname == ""
+		if blTarget.useRegex {
+			matches, err := regexp.MatchString(t.Hostname, blTarget.Hostname)
+			if err != nil {
+				klog.V(1).Infof("[brownfield] Regex hostname %s caused an error: %s", t.Hostname, err)
+			}
+			hostIsBlacklisted = hostIsBlacklisted || matches
+		} else {
+			hostIsBlacklisted = hostIsBlacklisted || strings.EqualFold(t.Hostname, blTarget.Hostname)
+		}
 
 		pathIsBlacklisted := blTarget.Path == "" || blTarget.Path == "/*" || t.Path.lower() == blTarget.Path.lower() || blTarget.Path.contains(t.Path) // TODO(draychev): || t.Path.contains(blTarget.Path)
 
@@ -55,15 +67,22 @@ func GetTargetBlacklist(prohibitedTargets []*ptv1.AzureIngressProhibitedTarget) 
 	// TODO(draychev): make this a method of ExistingResources and memoize it.
 	var target []Target
 	for _, prohibitedTarget := range prohibitedTargets {
+		useRegexAnnotation, _ := prohibitedTarget.ObjectMeta.Annotations["appgw.ingress.kubernetes.io/use-regex"]
+		useRegex, err := strconv.ParseBool(useRegexAnnotation)
+		if err != nil {
+			useRegex = false
+		}
 		if len(prohibitedTarget.Spec.Paths) == 0 {
 			target = append(target, Target{
 				Hostname: prohibitedTarget.Spec.Hostname,
+				useRegex: useRegex,
 			})
 		}
 		for _, path := range prohibitedTarget.Spec.Paths {
 			target = append(target, Target{
 				Hostname: prohibitedTarget.Spec.Hostname,
 				Path:     TargetPath(strings.ToLower(path)),
+				useRegex: useRegex,
 			})
 		}
 	}

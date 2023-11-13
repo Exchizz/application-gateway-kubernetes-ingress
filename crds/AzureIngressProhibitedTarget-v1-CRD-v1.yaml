@@ -4,6 +4,7 @@ metadata:
   name: azureingressprohibitedtargets.appgw.ingress.k8s.io
   annotations:
     "api-approved.kubernetes.io": "https://github.com/Azure/application-gateway-kubernetes-ingress/pull/1272"
+    "appgw.ingress.kubernetes.io/use-regex": "false"
 spec:
   group: appgw.ingress.k8s.io
   names:
@@ -12,9 +13,9 @@ spec:
   scope: Namespaced
   versions:
     - name: v1
-      served: true 
-      storage: true 
-      schema: 
+      served: true
+      storage: true
+      schema:
         openAPIV3Schema:
           type: object
           properties:
@@ -28,5 +29,5 @@ spec:
                   description: "(optional) A list of URL paths, for which the Ingress Controller is prohibited from mutating Application Gateway configuration; Must begin with a / and end with /*"
                   type: array
                   items:
-                      type: string
-                      pattern: '^\/(?:.+\/)?\*$'
+                    type: string
+                    pattern: '^\/(?:.+\/)?\*$'
